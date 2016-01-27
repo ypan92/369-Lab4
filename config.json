@@ -1,0 +1,12 @@
+{
+	"mongo": "localhost",
+	"port": 27017,
+	"database": "ypan01",
+	"collection": "thot",
+	"monitor": "",
+	"delay": 0,
+	"words": "",
+	"clientLog": "",
+	"serverLog": "",
+	"wordFilter": ""
+}
