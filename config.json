@@ -1,12 +1,12 @@
 {
-	"mongo": "localhost",
+	"mongo": "cslvm31",
 	"port": 27017,
-	"database": "ypan01",
-	"collection": "thot",
-	"monitor": "",
-	"delay": 0,
-	"words": "",
-	"clientLog": "",
-	"serverLog": "",
-	"wordFilter": ""
+	"database": "dlee104",
+	"collection": "messenger",
+	"monitor": "monitor",
+	"delay": 1,
+	"words": "sense.txt",
+	"clientLog": "clientLog.txt",
+	"serverLog": "serverLog.txt",
+	"wordFilter": "queryWords2.txt""
 }

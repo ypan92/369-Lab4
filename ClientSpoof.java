@@ -12,6 +12,7 @@ class ClientSpoof {
 	private static final int MAX_USERS = 10000;
     private static final int WORD_FILE_SIZE = 6832;
     private static ArrayList<String> words = new ArrayList<String>();
+    private static int messageId = 0;
 
     private static int randNum(int min, int max) {
         return (int) (Math.random() * (max - min + 1)) + min;
@@ -62,11 +63,11 @@ class ClientSpoof {
         return recepient;
     }
 
-    private static void scanWordFile() {
+    private static void scanWordFile(String wordFile) {
         Scanner scanner;
 
         try {
-            scanner = new Scanner(new File("sense.txt"));
+            scanner = new Scanner(new File(wordFile));
 
             while (scanner.hasNextLine()) {
                 words.add(scanner.nextLine());
@@ -96,12 +97,11 @@ class ClientSpoof {
         return text;
     }
 
-	private static void generateJSON(PrintWriter writer) {
-        JSONObject object;
-        int messageId = 0;
+	private static JSONObject generateJSON(PrintWriter writer, String wordFile) {
+        JSONObject object = null;
         String status;
 
-        scanWordFile();
+        scanWordFile(wordFile);
 
         status = getStatus();
         try {
@@ -116,13 +116,15 @@ class ClientSpoof {
             object.put("text", getText());
 
             writer.println(object.toString(2));
-            System.out.println(object.toString(2));
+            //System.out.println(object.toString(2));
         }
         catch (Exception e) {
             e.printStackTrace();
         }
 
         writer.flush();
+
+        return object;
     }
 
 	public static void main(String[] args) {
@@ -140,11 +142,37 @@ class ClientSpoof {
 			JSONObject config = new JSONObject(tokenizer);
 
 			String server = config.get("mongo").toString();
-			int port = (Integer)config.get("port");
+            if (server.isEmpty() || server == "null") {
+                server = "localhost";
+            }
+
+            int port;
+            if (config.get("port").toString() == "null") {
+                port = 27017;
+            }
+            else {
+                port = (Integer)config.get("port");
+            }
+
 			String dbname = config.get("database").toString();
+            if (dbname.isEmpty()) {
+                dbname = "test";
+            }
+
 			String collection = config.get("collection").toString();
 			String monitor = config.get("monitor").toString();
-			int delay = (Integer)config.get("delay");
+			int delay;
+            String delayStr = config.get("delay").toString();
+            if (delayStr == "null") {
+                delay = 10;
+            }
+            else {
+                delay = (Integer)config.get("delay");
+                if (delay == 0) {
+                    delay = 10;
+                }
+            }
+
 			String wordFile = config.get("words").toString();
 			String clientLog = config.get("clientLog").toString();
 			String serverLog = config.get("serverLog").toString();
@@ -153,22 +181,21 @@ class ClientSpoof {
 			Logger logger = Logger.getLogger("org.mongodb.driver");
 			logger.setLevel(Level.OFF);
 
-			MongoClient client = new MongoClient("cslvm31");
+			MongoClient client = new MongoClient(server, port);
 			MongoDatabase db = client.getDatabase(dbname);
 			MongoCollection<Document> dox = db.getCollection(collection);
 
 			Date now = new Date();
-			System.out.println("Current Timestamp: " + new Timestamp(now.getTime()));
+            long count = dox.count();
 
+			System.out.println("Current Timestamp: " + new Timestamp(now.getTime()));
 			System.out.println("Server: " + server);
 			System.out.println("Port: " + port);
 			System.out.println("Database: " + dbname);
 			System.out.println("Collection: " + collection);
-
-			long count = dox.count();
 			System.out.println("Documents in collection: " + count);
 
-			File log = new File("clientLog.txt");
+			File log = new File(clientLog);
 			log.createNewFile();
 			PrintWriter writer = new PrintWriter(new FileWriter(log));
 
@@ -176,11 +203,38 @@ class ClientSpoof {
 			int cycle = 1;
 			while (true) {
 				Thread.sleep(msDelay);
-				generateJSON(writer);
-				cycle += 1;
-				if (cycle == 6) {
-					break;
+				JSONObject obj = generateJSON(writer, wordFile);
+                System.out.println(obj.toString(2));
+                System.out.println(new Timestamp((new Date()).getTime()));
+
+                Document newRecord = new Document();
+                newRecord.append("recepient", obj.get("recepient"));
+                newRecord.append("messageId", obj.get("messageId"));
+                newRecord.append("text", obj.get("text"));
+                newRecord.append("user", obj.get("user"));
+                newRecord.append("status", obj.get("status"));
+                if (obj.has("in-response"))
+                    newRecord.append("in-response", obj.get("in-response"));
+
+                db.getCollection(collection).insertOne(newRecord);
+
+				if (cycle % 40 == 0) {
+
+                    //query total msgs stored
+                    long msgCount = dox.count();
+                    System.out.println("\nTotal messages stored in collection: " + msgCount);
+
+
+                    //query total msg count written by author of last generate msg
+                    String lastUser = obj.get("user").toString();
+
+                    Document query = new Document();
+                    query.append("user", lastUser);
+                    long usrMsgCount = dox.count(query);
+                    System.out.println("User " + lastUser + " message count: " + usrMsgCount + "\n");
+
 				}
+                cycle += 1;
 			}
 
 		}
