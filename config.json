@@ -8,5 +8,5 @@
 	"words": "sense.txt",
 	"clientLog": "clientLog.txt",
 	"serverLog": "serverLog.txt",
-	"wordFilter": "queryWords2.txt""
+	"wordFilter": "queryWords2.txt"
 }

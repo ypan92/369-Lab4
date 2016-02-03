@@ -12,7 +12,6 @@ class ClientSpoof {
 	private static final int MAX_USERS = 10000;
     private static final int WORD_FILE_SIZE = 6832;
     private static ArrayList<String> words = new ArrayList<String>();
-    private static int messageId = 0;
 
     private static int randNum(int min, int max) {
         return (int) (Math.random() * (max - min + 1)) + min;
@@ -99,6 +98,7 @@ class ClientSpoof {
 
 	private static JSONObject generateJSON(PrintWriter writer, String wordFile) {
         JSONObject object = null;
+        int messageId = 0;
         String status;
 
         scanWordFile(wordFile);
